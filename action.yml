@@ -28,7 +28,7 @@ inputs:
   recurringContributorMessage:
     description: 'Message to contributors who have already contributed to a good first issue'
     required: false
-    default: 'Thanks for your interest in this issue. It looks like this is a good first issue, and you've already contributed to the codebase. Let us leave this issue for a newcomer to the project,but please take a look at our other open issues if you would still like to contribute.'
+    default: 'Thanks for your interest in this issue. It looks like this is a good first issue, and you have already contributed to the codebase. Let us leave this issue for a newcomer to the project,but please take a look at our other open issues if you would still like to contribute.'
 
   trigger:
     description: 'The string that triggers the action'
@@ -111,8 +111,8 @@ runs:
             echo "Responding with RECURRING_CONTRIBUTOR_MESSAGE..."
             echo "$RECURRING_CONTRIBUTOR_MESSAGE"
         break 
-    fi
-done
+        fi
+        done
 
       shell: bash
       env:
