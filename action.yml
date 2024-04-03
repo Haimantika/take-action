@@ -25,6 +25,11 @@ inputs:
     required: false
     default: 'The issue you are trying to assign to yourself is blocked by a one or more labels on the issue.'
 
+  recurringContributorMessage:
+    description: 'Message to contributors who have already contributed to a good first issue'
+    required: false
+    default: 'Thanks for your interest in this issue. It looks like this is a good first issue, and you've already contributed to the codebase. Let us leave this issue for a newcomer to the project,but please take a look at our other open issues if you would still like to contribute.'
+
   trigger:
     description: 'The string that triggers the action'
     required: false
@@ -37,6 +42,18 @@ runs:
   using: "composite"
   steps:
     - run: |
+        check_if_contributed_to_good_first_issue() {
+            local assignee="$1"
+            local response=$(curl -s -H "Authorization: token $GITHUB_PAT" "https://api.github.com/search/issues?q=is:pr+author:$assignee+label:\"good first issue\"")
+            local total_count=$(echo "$response" | jq -r '.total_count')
+
+            if [ "$total_count" -gt 0 ]; then
+                echo "true"
+            else
+                echo "false"
+            fi
+        }
+
         BODY="$(jq '.comment.body' $GITHUB_EVENT_PATH)"
         ISSUE_NUMBER="$(jq '.issue.number' $GITHUB_EVENT_PATH)"
         LOGIN="$(jq '.comment.user.login' $GITHUB_EVENT_PATH | tr -d \")"
@@ -45,6 +62,7 @@ runs:
         ISSUE_LABELS="$(jq -r '.issue.labels[].name' $GITHUB_EVENT_PATH)"
         ISSUE_LABELS=$(echo "$ISSUE_LABELS" | jq -n --arg str "$ISSUE_LABELS" '$str | split("\n")')
         ISSUE_CURRENTLY_ASSIGNED=`echo $ISSUE_JSON | jq '.assignees | length == 0'`
+        ASSIGNEES="$(jq -r '.issue.assignees[].login' "$GITHUB_EVENT_PATH")"
 
         if [[ $BODY == *"$INPUT_TRIGGER"* ]]; then
           if [[ "$ISSUE_CURRENTLY_ASSIGNED" == true ]]; then
@@ -85,7 +103,17 @@ runs:
             curl -X POST -H "Authorization: bearer $GITHUB_PAT" --data @payload.json https://api.github.com/repos/$REPO/issues/$ISSUE_NUMBER/comments
             fi
           fi
-        fi
+        # Check if the user has already contributed to a good first issue
+        for ASSIGN in $ASSIGNEES; do
+          HAS_CONTRIBUTED=$(check_if_contributed_to_good_first_issue "$ASSIGN")
+          if [ "$HAS_CONTRIBUTED" = "true" ]; then
+            echo "Assignee $ASSIGN has already contributed to a good first issue."
+            echo "Responding with RECURRING_CONTRIBUTOR_MESSAGE..."
+            echo "$RECURRING_CONTRIBUTOR_MESSAGE"
+        break 
+    fi
+done
+
       shell: bash
       env:
         INPUT_MESSAGE: "${{ inputs.message }}"
@@ -93,4 +121,5 @@ runs:
         BLOCKING_LABELS_MESSAGE: "${{ inputs.blockingLabelsMessage }}"
         INPUT_TRIGGER: "${{ inputs.trigger }}"
         ISSUE_CURRENTLY_ASSIGNED_MESSAGE: "${{ inputs.issueCurrentlyAssignedMessage }}"
+        RECURRING_CONTRIBUTOR_MESSAGE: "${{ inputs.recurringContributorMessage }}"
         GITHUB_PAT: "${{ inputs.token }}"

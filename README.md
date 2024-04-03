@@ -9,6 +9,7 @@ This GitHub Action lets a prospective contributor assign themselves to an issue,
 - `blockingLabels`<br />A comma-separated list of labels that will prevent the action from running if they are present on the issue.
 - `blockingLabelsMessage`<br />The message to display to the user if the issue has a blocking label.
 - `trigger`<br />The string that take action will search for in the comment body to activate the action.
+- `recurringContributorMessage` <br /> The message to display to the user if they have already contributed to a good first issue.
 
 ## Setup
 
